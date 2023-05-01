@@ -14,6 +14,7 @@ from tkinter import messagebox
 import os
 import numpy as np
 import sys
+import math
 from huligutta import *
 from functions import *
 from PIL import ImageTk, Image
@@ -487,6 +488,8 @@ class Main():
             for neighbor in Position(tiger[0],tiger[1]).get_neighbors():
                 if givenBoard[neighbor] == ():
                     tigerMoves.append([tiger,neighbor,"m"])
+                elif givenBoard.get(Piece(tiger).secondAdjacent(neighbor)) == None:
+                    continue
                 elif givenBoard[neighbor] == "O" and givenBoard[Piece(tiger).secondAdjacent(neighbor)] == ():
                     tigerMoves.append([tiger,Piece(tiger).secondAdjacent(neighbor),"c",neighbor])
         return goatMoves + tigerMoves
