@@ -460,6 +460,8 @@ class Main():
         self.goatsEatentext.set("Goats eaten: " + str(self.goatEaten))
         self.turnDisplay()
         self.selectedToggle()
+        self.bestGoatMove(Board().boardPositions)
+        self.bestTigerMove(Board().boardPositions)
 
         # Endgame
         if possibleMovesCount == 0:
@@ -469,6 +471,160 @@ class Main():
         if self.goatEaten == 5:
             messagebox.showinfo("Game Over: Tiger wins") 
             return
+
+    def allPossibleMoves(self,givenBoard):
+        goatMoves = []
+        if self.goatCount < 15:
+            for empty in emptyPositions(givenBoard):
+                goatMoves.append([0,empty,"p"])
+        else:
+            for goat in goatPositions(givenBoard):
+                for neighbor in Position(goat[0],goat[1]).get_neighbors():
+                    if givenBoard[neighbor] != "X":
+                        goatMoves.append([goat,neighbor,"m"])
+        tigerMoves = []
+        for tiger in tigerPositions(givenBoard):
+            for neighbor in Position(tiger[0],tiger[1]).get_neighbors():
+                if givenBoard[neighbor] == ():
+                    tigerMoves.append([tiger,neighbor,"m"])
+                elif givenBoard[neighbor] == "O" and givenBoard[Piece(tiger).secondAdjacent(neighbor)] == ():
+                    tigerMoves.append([tiger,Piece(tiger).secondAdjacent(neighbor),"c",neighbor])
+        return goatMoves + tigerMoves
+
+    def makeMove(self,givenBoard,move,do):
+        newBoardPosition = givenBoard.copy()
+        if move[2] == "p":
+            newBoardPosition[move[1]] = "O"
+        elif move[2] == "m":
+            newBoardPosition[move[1]] = newBoardPosition[move[0]]
+            newBoardPosition[move[0]] = ()
+        elif move[2] == "c":
+            if do == 1:
+                newBoardPosition[move[1]] = newBoardPosition[move[0]]
+                newBoardPosition[move[0]] = ()
+                newBoardPosition[move[3]] = ()
+            elif do == -1:
+                newBoardPosition[move[1]] = newBoardPosition[move[0]]
+                newBoardPosition[move[0]] = ()
+                newBoardPosition[move[3]] = "O"
+        #print(newBoardPosition)
+        return newBoardPosition
+
+    def probOfPossMoves(self,givenBoard):
+        #for valueOfPosition
+        goatsEaten = self.goatEaten
+        params = [2,-1,-1,0.5]
+
+        moveVals = []
+        valSum = 0
+        for move in self.allPossibleMoves(givenBoard):
+            if move[0] == 0:
+                moveVals.append([move,self.valueOfPosition(self.makeMove(givenBoard,move,1),goatsEaten,params)])
+            elif givenBoard[move[0]] == "O":
+                moveVals.append([move,self.valueOfPosition(self.makeMove(givenBoard,move,1),goatsEaten,params)])
+            elif givenBoard[move[0]] == "X" and move[2] != "c" and len(goatPositions(givenBoard)) != 0:
+                if self.valueOfPosition(self.makeMove(givenBoard,move,1),goatsEaten,params) == None:
+                    continue
+                moveVals.append([move,1-self.valueOfPosition(self.makeMove(givenBoard,move,1),goatsEaten,params)])
+            elif move[2] == "c" and len(goatPositions(givenBoard)) != 0:
+                if self.valueOfPosition(self.makeMove(givenBoard,move,1),goatsEaten+1,params) == None:
+                    continue
+                moveVals.append([move,1-self.valueOfPosition(self.makeMove(givenBoard,move,1),goatsEaten+1,params)])
+
+        for vals in moveVals:
+            vals[1] = math.exp(vals[1])
+            valSum += vals[1]
+        for vals in moveVals:
+            vals[1] = vals[1]/valSum
+        #print("probOfPossMoves",moveVals)
+        return(moveVals)
+
+    def bestGoatMove(self,givenBoard):
+        allmoves = self.probOfPossMoves(givenBoard)
+        moves = []
+        poss = []
+        for move in allmoves:
+            if move[0][0] == 0:
+                moves.append(move[0])
+                poss.append(move[1])
+            elif givenBoard[move[0][0]] == "O":
+                moves.append(move[0])
+                poss.append(move[1])
+        for i in range(len(moves)):
+            print(moves[i],poss[i])
+        print("bestGoatMove",moves[poss.index(max(poss))],poss[poss.index(max(poss))])
+        return moves[poss.index(max(poss))]
+
+    def bestTigerMove(self,givenBoard):
+        if len(goatPositions(givenBoard)) == 0:
+            return
+        allmoves = self.probOfPossMoves(givenBoard)
+        moves = []
+        poss = []
+        for move in allmoves:
+            if move[0][0] == 0:
+                continue
+            if givenBoard[move[0][0]] == "X":
+                moves.append(move[0])
+                poss.append(move[1])
+        for i in range(len(moves)):
+            print(moves[i],poss[i])
+        print("bestTigerMove",moves[poss.index(max(poss))],poss[poss.index(max(poss))])
+        return moves[poss.index(max(poss))]
+
+    def valueOfPosition(self, givenBoard, goatEaten, params):
+        #return random.random()
+
+        placedGoats = len(goatPositions(givenBoard)) + goatEaten
+        #         print(givenBoard)
+        #         print(goatPositions(givenBoard))
+        #         print(placedGoats)
+        if placedGoats == 0:
+            return
+        goatCountMultiplier = params[0]
+        tigerCountMultiplier = params[1]
+        badTigerCountMultiplier = params[2]
+        weight = params[3]
+
+        # Mobility Value
+        tigerPos = tigerPositions(givenBoard)
+        mobilityval = 0
+        for tiger in tigerPositions(givenBoard):
+            for neighbor in Position(tiger[0],tiger[1]).get_neighbors():
+                if givenBoard[neighbor] == ():
+                    mobilityval += 1
+
+        # Safety Value (WIP)
+        goatPos = goatPositions(givenBoard)
+        safetyval = 0
+        for goat in goatPos:
+            goatCount = 0
+            tigerCount = 0
+            badTigerCount = 0
+            for neighbor in Position(goat[0],goat[1]).get_neighbors():
+                if givenBoard[neighbor] == 'O':
+                    goatCount = goatCount + 1
+                elif givenBoard[neighbor] == 'X':
+                    if Position(neighbor[0],neighbor[1]).get_captures() == goat:
+                        badTigerCount = badTigerCount + 1
+                    else:
+                        tigerCount = tigerCount + 1
+            safetyval = safetyval + self.checkValue(goatCount,tigerCount,badTigerCount,goatCountMultiplier,tigerCountMultiplier,badTigerCountMultiplier)
+        maxmobilityval = 4
+        maxsafetyval = 4*goatCountMultiplier
+        avgsafetyval = safetyval/placedGoats
+        avgmobilityval = mobilityval/3
+        if goatEaten == 5:
+            winprob = 0
+        elif len(Piece(tiger).possibleMoves()) == 0:
+            winprob = 1
+        else:
+            winprob = (weight)*(avgsafetyval/maxsafetyval)+(1-weight)*(1-(avgmobilityval/maxmobilityval))
+        #print(winprob)
+        return winprob
+
+    def checkValue(self,goatCount,tigerCount,badTigerCount,goatCountMultiplier,tigerCountMultiplier,badTigerCountMultiplier):
+        return goatCount*goatCountMultiplier + tigerCount*tigerCountMultiplier + badTigerCount*badTigerCountMultiplier
 
     def collectData(self):
         printAndLog("Move: " + str(self.moveCount))
