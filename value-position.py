@@ -90,9 +90,46 @@ def valueOfPosition(givenBoard, goatEaten, params):
 def checkValue(goatCount,tigerCount,badTigerCount,goatCountMultiplier,tigerCountMultiplier,badTigerCountMultiplier):
     return goatCount*goatCountMultiplier + tigerCount*tigerCountMultiplier + badTigerCount*badTigerCountMultiplier
 
+def boardToMatrix(givenBoard):
+    
+    i=0
+    matrix = np.empty((23,3),dtype=np.int8)
+    
+    for pos in givenBoard:
+        if givenBoard[pos] == "X": matrix[i] = [1,0,0]
+        elif givenBoard[pos] == "O": matrix[i] = [0,1,0]
+        elif givenBoard[pos] == (): matrix[i] = [0,0,1]
+        #print(i,pos,givenBoard[pos],matrix[i])
+        i+=1
+        
+    #print(matrix)
+    return matrix
+
+def phaseToVector(givenPhase):
+    if givenPhase == -1: return np.array([1,0],dtype=np.int8)
+    elif givenPhase == 1: return np.array([0,1],dtype=np.int8)
+    pass
+
+def capturedGoatsToVector(givenCaps):
+    if givenCaps == 0: return np.array([1,0,0,0,0],dtype=np.int8)
+    elif givenCaps == 1: return np.array([0,1,0,0,0],dtype=np.int8)
+    elif givenCaps == 2: return np.array([0,0,1,0,0],dtype=np.int8)
+    elif givenCaps == 3: return np.array([0,0,0,1,0],dtype=np.int8)
+    elif givenCaps == 4: return np.array([0,0,0,0,1],dtype=np.int8)
+    pass
+    
+def makeBinaryVector(boardMatrix,phaseVector,capsVector):
+    return np.concatenate((boardMatrix.flatten(),phaseVector,capsVector))
+
 for i in range(1):
     params = [2,-1,-1,0.5]
-    goatsEaten = np.random.randint(0,3)
     randState = generateState(12)
-    value = valueOfPosition(randState,goatsEaten,params)
-    print(params,goatsEaten,randState,value,sep="\n")
+    phase = np.random.choice([1,-1], 1)
+    goatsEaten = np.random.randint(0,3)
+    
+    binVector = makeBinaryVector(boardToMatrix(randState),phaseToVector(phase),capturedGoatsToVector(goatsEaten))
+    print(boardToMatrix(randState),phaseToVector(phase),capturedGoatsToVector(goatsEaten),binVector,sep="\n")
+    
+    #value = valueOfPosition(randState,goatsEaten,params)
+    #print(params,goatsEaten,randState,value,sep="\n")
+    
