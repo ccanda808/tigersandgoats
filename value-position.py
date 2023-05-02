@@ -7,9 +7,36 @@ Description: GUI of the game using TKinter
 __author__ = "Cameron Canda and group"
 __status__ = "Dev"
 
-params = [2,-1,-1,0.5]
+import numpy as np
+from huligutta import *
+from functions import *
 
-def valueOfPosition(self, givenBoard, goatEaten, params):
+def generateState(numOfGoats):
+    
+    state = {'b0': (),'a1': (),'a2': (),'a3': (),
+        'b1': (),'b2': (),'b3': (),'b4': (),
+        'c1': (),'c2': (),'c3': (),'c4': (),
+        'd1': (),'d2': (),'d3': (),'d4': (),
+        'e1': (),'e2': (),'e3': (),'e4': (),
+        'f1': (),'f2': (),'f3': ()}
+    
+    board = ['b0','a1','a2','a3',
+        'b1','b2','b3','b4',
+        'c1','c2','c3','c4',
+        'd1','d2','d3','d4',
+        'e1','e2','e3','e4',
+        'f1','f2','f3']
+    
+    positions = np.random.choice(23, numOfGoats+3, replace=False)
+    
+    for tigers in range(0,3):
+        state[board[positions[tigers]]] = 'X'
+    for goats in range(3,numOfGoats+3):
+        state[board[positions[goats]]] = 'O'
+    
+    return state
+
+def valueOfPosition(givenBoard, goatEaten, params):
     #return random.random()
 
     placedGoats = len(goatPositions(givenBoard)) + goatEaten
@@ -46,7 +73,7 @@ def valueOfPosition(self, givenBoard, goatEaten, params):
                     badTigerCount = badTigerCount + 1
                 else:
                     tigerCount = tigerCount + 1
-        safetyval = safetyval + self.checkValue(goatCount,tigerCount,badTigerCount,goatCountMultiplier,tigerCountMultiplier,badTigerCountMultiplier)
+        safetyval = safetyval + checkValue(goatCount,tigerCount,badTigerCount,goatCountMultiplier,tigerCountMultiplier,badTigerCountMultiplier)
     maxmobilityval = 4
     maxsafetyval = 4*goatCountMultiplier
     avgsafetyval = safetyval/placedGoats
@@ -60,5 +87,12 @@ def valueOfPosition(self, givenBoard, goatEaten, params):
     #print(winprob)
     return winprob
 
-def checkValue(self,goatCount,tigerCount,badTigerCount,goatCountMultiplier,tigerCountMultiplier,badTigerCountMultiplier):
+def checkValue(goatCount,tigerCount,badTigerCount,goatCountMultiplier,tigerCountMultiplier,badTigerCountMultiplier):
     return goatCount*goatCountMultiplier + tigerCount*tigerCountMultiplier + badTigerCount*badTigerCountMultiplier
+
+for i in range(1):
+    params = [2,-1,-1,0.5]
+    goatsEaten = np.random.randint(0,3)
+    randState = generateState(12)
+    value = valueOfPosition(randState,goatsEaten,params)
+    print(params,goatsEaten,randState,value,sep="\n")
